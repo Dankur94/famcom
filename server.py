@@ -19,7 +19,6 @@ _COMMAND_HINTS = [
     "ausgabe", "ausgegeben", "bezahlt", "gekauft", "spent", "paid", "bought",
     "expense", "groceries", "taxi", "lunch", "dinner",
     "stunde", "stunden", "minuten", "cooking", "cleaning", "putzen", "kochen",
-    "danke", "thanks", "thank", "kudos",
     "erinner", "remind", "reminder",
     "report", "weekly", "monthly", "woche", "monat",
     "loeschen", "löschen", "undo", "delete",
@@ -47,7 +46,6 @@ from registry import register_module
 from modules.help.module import HelpModule
 from modules.expense.module import ExpenseModule
 from modules.time_log.module import TimeLogModule
-from modules.thanks.module import ThanksModule
 from modules.delete.module import DeleteModule
 from modules.reminders.module import RemindersModule
 from modules.reports.module import ReportsModule
@@ -59,7 +57,6 @@ from modules.pain.module import PainModule
 register_module("help", HelpModule)
 register_module("expense", ExpenseModule)
 register_module("time_log", TimeLogModule)
-register_module("thanks", ThanksModule)
 register_module("ouch", OuchModule)
 register_module("pain", PainModule)
 register_module("delete", DeleteModule)

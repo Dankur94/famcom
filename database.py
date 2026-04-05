@@ -315,37 +315,6 @@ class Database:
         cursor.execute("DELETE FROM time_entries WHERE id = ?", (entry_id,))
         self.conn.commit()
 
-    # --- Thanks ---
-
-    def add_thanks(self, from_user: str, to_user: str, message: str,
-                   timestamp: str = None) -> dict:
-        ts = timestamp or datetime.now().isoformat()
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "INSERT INTO thanks (from_user, to_user, message, timestamp) VALUES (?, ?, ?, ?)",
-            (from_user, to_user, message, ts)
-        )
-        self.conn.commit()
-        return {"id": cursor.lastrowid, "from_user": from_user, "to_user": to_user,
-                "message": message, "timestamp": ts}
-
-    def get_thanks_range(self, start: str, end: str) -> list[dict]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM thanks WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp",
-                       (start, end))
-        return [dict(row) for row in cursor.fetchall()]
-
-    def get_last_thanks(self) -> dict | None:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM thanks ORDER BY timestamp DESC LIMIT 1")
-        row = cursor.fetchone()
-        return dict(row) if row else None
-
-    def delete_thanks(self, entry_id: int):
-        cursor = self.conn.cursor()
-        cursor.execute("DELETE FROM thanks WHERE id = ?", (entry_id,))
-        self.conn.commit()
-
     # --- Reminders ---
 
     def add_reminder(self, created_by: str, remind_at: str, message: str) -> dict:
@@ -389,7 +358,7 @@ class Database:
     # --- Delete generic ---
 
     def delete_entry(self, entry_type: str, entry_id: int):
-        table_map = {"expense": "expenses", "time": "time_entries", "thanks": "thanks"}
+        table_map = {"expense": "expenses", "time": "time_entries"}
         table = table_map.get(entry_type)
         if not table:
             return
@@ -427,19 +396,6 @@ class Database:
             result[person]["categories"][cat] = result[person]["categories"].get(cat, 0) + e["minutes"]
         return result
 
-    def get_thanks_by_person(self, start: str, end: str) -> dict:
-        """Returns {to_person: {count: N, from: {person: count}}}."""
-        entries = self.get_thanks_range(start, end)
-        result = {}
-        for e in entries:
-            to = e["to_user"]
-            if to not in result:
-                result[to] = {"count": 0, "from": {}}
-            result[to]["count"] += 1
-            fr = e["from_user"]
-            result[to]["from"][fr] = result[to]["from"].get(fr, 0) + 1
-        return result
-
     # --- All-time aggregation ---
 
     def get_all_expenses_by_person(self) -> dict:
@@ -474,26 +430,11 @@ class Database:
             result[person]["categories"][cat] = result[person]["categories"].get(cat, 0) + e["minutes"]
         return result
 
-    def get_all_thanks_by_person(self) -> dict:
-        """All-time thanks per person."""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM thanks ORDER BY timestamp")
-        entries = [dict(row) for row in cursor.fetchall()]
-        result = {}
-        for e in entries:
-            to = e["to_user"]
-            if to not in result:
-                result[to] = {"count": 0, "from": {}}
-            result[to]["count"] += 1
-            fr = e["from_user"]
-            result[to]["from"][fr] = result[to]["from"].get(fr, 0) + 1
-        return result
-
     def get_first_entry_date(self) -> str | None:
         """Get the earliest timestamp across all tables."""
         cursor = self.conn.cursor()
         dates = []
-        for table, col in [("expenses", "timestamp"), ("time_entries", "timestamp"), ("thanks", "timestamp")]:
+        for table, col in [("expenses", "timestamp"), ("time_entries", "timestamp")]:
             cursor.execute(f"SELECT MIN({col}) FROM {table}")
             row = cursor.fetchone()
             if row and row[0]:

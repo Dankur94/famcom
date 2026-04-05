@@ -22,15 +22,11 @@ HELP_TEXT = """\
   `bought @opa milk, bread` — for someone
   `groceries` — show today's list
 
-🙏 *Thanks / Kudos*
-  `thanks papa for shopping`
-  `danke mama for cooking`
-
 📊 *Reports*
   `report` / `weekly` — this week
   `monthly` — this month
   `today` — today's entries
-  `total` / `gesamt` — all-time family ledger
+  `total` — all-time family ledger
 
 ⏰ *Reminders*
   `remind 15:00 call doctor`
@@ -39,18 +35,21 @@ HELP_TEXT = """\
 
 💔 *Ouch*
   `ouch` — someone in the family hurt you
-  `ouch du hast mich angeschrien` — with context
-  `ouch @babe das war gemein` — about someone
+  `ouch you yelled at me` — with context
+  `ouch @babe that was mean` — about someone
 
 🩹 *Pain*
   `pain` — personal pain/struggle (not family)
-  `pain kopfschmerzen seit heute morgen`
-  `schmerzen im ruecken`
+  `pain headache since this morning`
+  `pain back pain`
 
 🗑 *Delete*
   `undo` — delete last entry
   `delete expense 14:30`
   `delete time 09:00`
+
+🤖 *AI Query*
+  `!q how much did we spend this week`
 
 ❓ `help` — this message"""
 

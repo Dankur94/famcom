@@ -61,12 +61,11 @@ class OuchModule(BaseModule):
             message=text or None,
         )
 
-        # Empathic response
-        parts = ["\U0001f494 Notiert."]
+        parts = ["\U0001f494 Noted."]
         if text:
-            parts.append("Danke fuers Teilen.")
+            parts.append("Thanks for sharing.")
         else:
-            parts.append("Danke dass du es sagst.")
+            parts.append("Thanks for speaking up.")
 
         return Response(" ".join(parts))
 

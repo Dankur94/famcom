@@ -35,9 +35,9 @@ class PainModule(BaseModule):
         )
 
         if text:
-            return Response("\U0001fa79 Notiert. Gute Besserung!")
+            return Response("\U0001fa79 Noted. Get well soon!")
         else:
-            return Response("\U0001fa79 Notiert. Ich hoffe es wird besser.")
+            return Response("\U0001fa79 Noted. Hope you feel better soon.")
 
     def get_scheduled_jobs(self) -> list[ScheduledJob]:
         return []

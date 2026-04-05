@@ -10,7 +10,6 @@ Tables in this SQLite database:
 
 expenses(id, amount_hkd REAL, category TEXT, description TEXT, logged_by TEXT, timestamp TEXT)
 time_entries(id, minutes INTEGER, category TEXT, description TEXT, logged_by TEXT, timestamp TEXT)
-thanks(id, from_user TEXT, to_user TEXT, message TEXT, timestamp TEXT)
 reminders(id, created_by TEXT, remind_at TEXT, message TEXT, is_sent INTEGER, created_at TEXT)
 grocery_items(id, item TEXT, quantity TEXT, bought_by TEXT, timestamp TEXT)
 ouch_entries(id, logged_by TEXT, about_user TEXT, message TEXT, timestamp TEXT)

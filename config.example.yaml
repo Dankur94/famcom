@@ -6,8 +6,6 @@ modules:
     enabled: true
   time_log:
     enabled: true
-  thanks:
-    enabled: true
   ouch:
     enabled: true
   pain:
