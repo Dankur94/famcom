@@ -27,6 +27,7 @@ _COMMAND_HINTS = [
     "pain", "schmerz",
     "goal", "maxim", "goals", "maxims",
     "asset", "assets",
+    "todo", "todos", "done",
 ]
 
 
@@ -57,6 +58,7 @@ from modules.ouch.module import OuchModule
 from modules.pain.module import PainModule
 from modules.goals.module import GoalsModule
 from modules.assets.module import AssetsModule
+from modules.todo.module import TodoModule
 
 register_module("help", HelpModule)
 register_module("expense", ExpenseModule)
@@ -65,6 +67,7 @@ register_module("ouch", OuchModule)
 register_module("pain", PainModule)
 register_module("goals", GoalsModule)
 register_module("assets", AssetsModule)
+register_module("todo", TodoModule)
 register_module("delete", DeleteModule)
 register_module("reminders", RemindersModule)
 register_module("reports", ReportsModule)

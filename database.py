@@ -105,6 +105,17 @@ class Database:
         """)
 
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS todos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person TEXT NOT NULL,
+                text TEXT NOT NULL,
+                is_done INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                completed_at TEXT
+            )
+        """)
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS assets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 person TEXT NOT NULL,
@@ -114,6 +125,45 @@ class Database:
             )
         """)
 
+        self.conn.commit()
+
+    # --- Todos ---
+
+    def add_todo(self, person: str, text: str) -> dict:
+        ts = datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO todos (person, text, is_done, created_at) VALUES (?, ?, 0, ?)",
+                       (person, text, ts))
+        self.conn.commit()
+        return {"id": cursor.lastrowid, "person": person, "text": text}
+
+    def get_open_todos(self, person: str = None) -> list[dict]:
+        cursor = self.conn.cursor()
+        if person:
+            cursor.execute("SELECT * FROM todos WHERE person = ? AND is_done = 0 ORDER BY id", (person,))
+        else:
+            cursor.execute("SELECT * FROM todos WHERE is_done = 0 ORDER BY person, id")
+        return [dict(row) for row in cursor.fetchall()]
+
+    def get_all_todos(self, person: str = None) -> list[dict]:
+        cursor = self.conn.cursor()
+        if person:
+            cursor.execute("SELECT * FROM todos WHERE person = ? ORDER BY is_done, id", (person,))
+        else:
+            cursor.execute("SELECT * FROM todos ORDER BY person, is_done, id")
+        return [dict(row) for row in cursor.fetchall()]
+
+    def complete_todo(self, todo_id: int) -> bool:
+        ts = datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE todos SET is_done = 1, completed_at = ? WHERE id = ? AND is_done = 0",
+                       (ts, todo_id))
+        self.conn.commit()
+        return cursor.rowcount > 0
+
+    def delete_todo(self, todo_id: int):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
         self.conn.commit()
 
     # --- Assets ---

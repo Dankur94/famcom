@@ -247,6 +247,12 @@ class ReportsModule(BaseModule):
         for m in all_maxims:
             maxims_by_person.setdefault(m["person"], []).append(m["text"])
 
+        # Open todos per person
+        open_todos = self.db.get_open_todos()
+        todos_by_person = {}
+        for t in open_todos:
+            todos_by_person.setdefault(t["person"], []).append(t)
+
         all_people = set()
         all_people.update(expenses_by_person.keys())
         all_people.update(time_by_person.keys())
@@ -254,6 +260,7 @@ class ReportsModule(BaseModule):
         all_people.update(pain_by_person.keys())
         all_people.update(goals_by_person.keys())
         all_people.update(maxims_by_person.keys())
+        all_people.update(todos_by_person.keys())
 
         if not all_people:
             return f"☀️ *Good Morning — {day_str}*\n\nNo entries yesterday."
@@ -288,6 +295,11 @@ class ReportsModule(BaseModule):
                 lines.append(f"  ✨ *Maxims:*")
                 for m in maxims_by_person[person]:
                     lines.append(f"    • {m}")
+
+            if person in todos_by_person:
+                lines.append(f"  📋 *Todos:*")
+                for t in todos_by_person[person]:
+                    lines.append(f"    ☐ #{t['id']} {t['text']}")
 
             lines.append("")
 

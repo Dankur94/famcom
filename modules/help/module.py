@@ -60,6 +60,13 @@ HELP_TEXT = """\
   `maxims` — list your maxims
   `delete maxim 1` — remove maxim #1
 
+📋 *Todos*
+  `todo buy groceries` — add a todo
+  `todo @opa go to doctor` — for someone
+  `done 3` — mark todo #3 as done
+  `delete todo 3` — remove todo #3
+  `todos` — list open todos
+
 🗑 *Delete*
   `undo` — delete last entry
   `delete expense 14:30`

@@ -17,12 +17,14 @@ pain_entries(id, logged_by TEXT, message TEXT, timestamp TEXT)
 goals(id, person TEXT, text TEXT, created_at TEXT)
 maxims(id, person TEXT, text TEXT, created_at TEXT)
 assets(id, person TEXT, description TEXT, value_hkd REAL, created_at TEXT)
+todos(id, person TEXT, text TEXT, is_done INTEGER, created_at TEXT, completed_at TEXT)
 
 All timestamps are ISO format (e.g. 2026-04-05T14:30:00).
 Currency is HKD. Time entries are in minutes.
 Members: Daniel, Babe, Gerold.
 ouch_entries tracks hurtful moments caused by family. logged_by = who felt hurt, about_user = who caused it (optional).
-pain_entries tracks personal pain/struggles not caused by family."""
+pain_entries tracks personal pain/struggles not caused by family.
+todos tracks daily tasks per person. is_done=0 means open, is_done=1 means completed."""
 
 _SQL_PROMPT = f"""\
 You are a SQL assistant for a family tracking app (FamCom).

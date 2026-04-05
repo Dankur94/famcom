@@ -26,7 +26,12 @@ class DeleteModule(BaseModule):
 
     def can_handle(self, message: Message) -> bool:
         t = message.text.strip().lower()
-        return t == "undo" or bool(_DELETE_PATTERN.match(message.text.strip()))
+        if t == "undo":
+            return True
+        if _DELETE_PATTERN.match(message.text.strip()):
+            return True
+        # "delete todo N" is handled by TodoModule, not here
+        return False
 
     def handle(self, message: Message) -> Response | None:
         t = message.text.strip().lower()
