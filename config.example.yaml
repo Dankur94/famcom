@@ -1,0 +1,42 @@
+whatsapp:
+  bridge_url: http://localhost:3002
+  group_name: FamCom
+modules:
+  expense:
+    enabled: true
+  time_log:
+    enabled: true
+  thanks:
+    enabled: true
+  reports:
+    enabled: true
+    weekly_day: sun
+    weekly_time: '20:00'
+  reminders:
+    enabled: true
+  help:
+    enabled: true
+  delete:
+    enabled: true
+  groceries:
+    enabled: true
+  ai_query:
+    enabled: true
+    api_key: YOUR_DEEPSEEK_API_KEY
+    base_url: https://api.deepseek.com
+    model: deepseek-chat
+members:
+  Daniel:
+    aliases: [daniel, ich, me, i]
+  Babe:
+    aliases: [babe, frau, wife, mama]
+  Gerold:
+    aliases: [gerold, opa, papa, vater, dad]
+voice:
+  enabled: true
+  groq_api_key: YOUR_GROQ_API_KEY
+  deepseek_api_key: YOUR_DEEPSEEK_API_KEY
+  deepseek_base_url: https://api.deepseek.com
+  deepseek_model: deepseek-chat
+database:
+  path: famcom.db
