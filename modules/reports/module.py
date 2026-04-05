@@ -197,7 +197,7 @@ class ReportsModule(BaseModule):
     # --- Daily 8am Summary (yesterday per person) ---
 
     def _daily_summary(self) -> str:
-        """Yesterday's per-person summary: contributions, ouch, pain."""
+        """Yesterday's per-person summary: contributions, ouch, pain + goals & maxims."""
         yesterday = date.today() - timedelta(days=1)
         start = yesterday.isoformat()
         end = date.today().isoformat()
@@ -208,11 +208,23 @@ class ReportsModule(BaseModule):
         ouch_by_person = self.db.get_ouch_by_person(start, end)
         pain_by_person = self.db.get_pain_by_person(start, end)
 
+        # Get all goals/maxims (always show, not just yesterday)
+        all_goals = self.db.get_all_goals()
+        all_maxims = self.db.get_all_maxims()
+        goals_by_person = {}
+        for g in all_goals:
+            goals_by_person.setdefault(g["person"], []).append(g["text"])
+        maxims_by_person = {}
+        for m in all_maxims:
+            maxims_by_person.setdefault(m["person"], []).append(m["text"])
+
         all_people = set()
         all_people.update(expenses_by_person.keys())
         all_people.update(time_by_person.keys())
         all_people.update(ouch_by_person.keys())
         all_people.update(pain_by_person.keys())
+        all_people.update(goals_by_person.keys())
+        all_people.update(maxims_by_person.keys())
 
         if not all_people:
             return f"☀️ *Good Morning — {day_str}*\n\nNo entries yesterday."
@@ -237,6 +249,16 @@ class ReportsModule(BaseModule):
             if person in pain_by_person:
                 d = pain_by_person[person]
                 lines.append(f"  🩹 {d['count']} pain")
+
+            if person in goals_by_person:
+                lines.append(f"  🎯 *Goals:*")
+                for g in goals_by_person[person]:
+                    lines.append(f"    • {g}")
+
+            if person in maxims_by_person:
+                lines.append(f"  ✨ *Maxims:*")
+                for m in maxims_by_person[person]:
+                    lines.append(f"    • {m}")
 
             lines.append("")
 

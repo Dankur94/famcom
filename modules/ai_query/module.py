@@ -14,6 +14,8 @@ reminders(id, created_by TEXT, remind_at TEXT, message TEXT, is_sent INTEGER, cr
 grocery_items(id, item TEXT, quantity TEXT, bought_by TEXT, timestamp TEXT)
 ouch_entries(id, logged_by TEXT, about_user TEXT, message TEXT, timestamp TEXT)
 pain_entries(id, logged_by TEXT, message TEXT, timestamp TEXT)
+goals(id, person TEXT, text TEXT, created_at TEXT)
+maxims(id, person TEXT, text TEXT, created_at TEXT)
 
 All timestamps are ISO format (e.g. 2026-04-05T14:30:00).
 Currency is HKD. Time entries are in minutes.

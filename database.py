@@ -86,6 +86,74 @@ class Database:
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person TEXT NOT NULL,
+                text TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS maxims (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person TEXT NOT NULL,
+                text TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        self.conn.commit()
+
+    # --- Goals ---
+
+    def add_goal(self, person: str, text: str) -> dict:
+        ts = datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO goals (person, text, created_at) VALUES (?, ?, ?)",
+                       (person, text, ts))
+        self.conn.commit()
+        return {"id": cursor.lastrowid, "person": person, "text": text}
+
+    def get_goals(self, person: str) -> list[dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM goals WHERE person = ? ORDER BY id", (person,))
+        return [dict(row) for row in cursor.fetchall()]
+
+    def get_all_goals(self) -> list[dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM goals ORDER BY person, id")
+        return [dict(row) for row in cursor.fetchall()]
+
+    def delete_goal(self, goal_id: int):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM goals WHERE id = ?", (goal_id,))
+        self.conn.commit()
+
+    # --- Maxims ---
+
+    def add_maxim(self, person: str, text: str) -> dict:
+        ts = datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO maxims (person, text, created_at) VALUES (?, ?, ?)",
+                       (person, text, ts))
+        self.conn.commit()
+        return {"id": cursor.lastrowid, "person": person, "text": text}
+
+    def get_maxims(self, person: str) -> list[dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM maxims WHERE person = ? ORDER BY id", (person,))
+        return [dict(row) for row in cursor.fetchall()]
+
+    def get_all_maxims(self) -> list[dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM maxims ORDER BY person, id")
+        return [dict(row) for row in cursor.fetchall()]
+
+    def delete_maxim(self, maxim_id: int):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM maxims WHERE id = ?", (maxim_id,))
         self.conn.commit()
 
     # --- Grocery Items ---

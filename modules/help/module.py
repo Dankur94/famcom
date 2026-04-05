@@ -43,6 +43,16 @@ HELP_TEXT = """\
   `pain headache since this morning`
   `pain back pain`
 
+🎯 *Goals*
+  `goal save 10k this year` — add a goal
+  `goals` — list your goals
+  `delete goal 2` — remove goal #2
+
+✨ *Maxims*
+  `maxim always be honest` — add a life maxim
+  `maxims` — list your maxims
+  `delete maxim 1` — remove maxim #1
+
 🗑 *Delete*
   `undo` — delete last entry
   `delete expense 14:30`
