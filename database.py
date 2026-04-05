@@ -77,6 +77,15 @@ class Database:
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pain_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                logged_by TEXT NOT NULL,
+                message TEXT,
+                timestamp TEXT NOT NULL
+            )
+        """)
+
         self.conn.commit()
 
     # --- Grocery Items ---
@@ -175,6 +184,61 @@ class Database:
             about = e["about_user"]
             if about:
                 result[person]["about"][about] = result[person]["about"].get(about, 0) + 1
+        return result
+
+    # --- Pain Entries ---
+
+    def add_pain(self, logged_by: str, message: str = None,
+                 timestamp: str = None) -> dict:
+        ts = timestamp or datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "INSERT INTO pain_entries (logged_by, message, timestamp) VALUES (?, ?, ?)",
+            (logged_by, message, ts)
+        )
+        self.conn.commit()
+        return {"id": cursor.lastrowid, "logged_by": logged_by,
+                "message": message, "timestamp": ts}
+
+    def get_pain_range(self, start: str, end: str) -> list[dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM pain_entries WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp",
+                       (start, end))
+        return [dict(row) for row in cursor.fetchall()]
+
+    def get_last_pain(self) -> dict | None:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM pain_entries ORDER BY timestamp DESC LIMIT 1")
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def delete_pain(self, entry_id: int):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM pain_entries WHERE id = ?", (entry_id,))
+        self.conn.commit()
+
+    def get_pain_by_person(self, start: str, end: str) -> dict:
+        """Pain entries per person for a date range."""
+        entries = self.get_pain_range(start, end)
+        result = {}
+        for e in entries:
+            person = e["logged_by"]
+            if person not in result:
+                result[person] = {"count": 0}
+            result[person]["count"] += 1
+        return result
+
+    def get_all_pain_by_person(self) -> dict:
+        """All-time pain entries per person."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM pain_entries ORDER BY timestamp")
+        entries = [dict(row) for row in cursor.fetchall()]
+        result = {}
+        for e in entries:
+            person = e["logged_by"]
+            if person not in result:
+                result[person] = {"count": 0}
+            result[person]["count"] += 1
         return result
 
     # --- Expenses ---

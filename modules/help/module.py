@@ -38,9 +38,14 @@ HELP_TEXT = """\
   `reminders` — show upcoming
 
 💔 *Ouch*
-  `ouch` — signal something hurt
+  `ouch` — someone in the family hurt you
   `ouch du hast mich angeschrien` — with context
   `ouch @babe das war gemein` — about someone
+
+🩹 *Pain*
+  `pain` — personal pain/struggle (not family)
+  `pain kopfschmerzen seit heute morgen`
+  `schmerzen im ruecken`
 
 🗑 *Delete*
   `undo` — delete last entry

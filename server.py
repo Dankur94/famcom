@@ -25,6 +25,7 @@ _COMMAND_HINTS = [
     "loeschen", "löschen", "undo", "delete",
     "hilfe", "help",
     "ouch", "aua", "autsch",
+    "pain", "schmerz",
 ]
 
 
@@ -53,12 +54,14 @@ from modules.reports.module import ReportsModule
 from modules.groceries.module import GroceriesModule
 from modules.ai_query.module import AIQueryModule
 from modules.ouch.module import OuchModule
+from modules.pain.module import PainModule
 
 register_module("help", HelpModule)
 register_module("expense", ExpenseModule)
 register_module("time_log", TimeLogModule)
 register_module("thanks", ThanksModule)
 register_module("ouch", OuchModule)
+register_module("pain", PainModule)
 register_module("delete", DeleteModule)
 register_module("reminders", RemindersModule)
 register_module("reports", ReportsModule)

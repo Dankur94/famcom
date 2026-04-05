@@ -10,8 +10,11 @@ modules:
     enabled: true
   ouch:
     enabled: true
+  pain:
+    enabled: true
   reports:
     enabled: true
+    daily_time: '08:00'
     weekly_day: sun
     weekly_time: '20:00'
   reminders:

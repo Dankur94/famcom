@@ -67,6 +67,10 @@ class DeleteModule(BaseModule):
         if last_ouch:
             candidates.append(("ouch", last_ouch))
 
+        last_pain = self.db.get_last_pain()
+        if last_pain:
+            candidates.append(("pain", last_pain))
+
         if not candidates:
             return Response("Nothing to undo.")
 
@@ -82,6 +86,11 @@ class DeleteModule(BaseModule):
             self.db.delete_ouch(entry["id"])
             msg = entry.get("message") or "no message"
             return Response(f"🗑 Deleted ouch: {msg}")
+
+        if entry_type == "pain":
+            self.db.delete_pain(entry["id"])
+            msg = entry.get("message") or "no message"
+            return Response(f"🗑 Deleted pain: {msg}")
 
         self.db.delete_entry(entry_type, entry["id"])
 
