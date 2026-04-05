@@ -148,8 +148,8 @@ async def handle_message(request: Request):
     if response:
         return {"reply": response.text}
 
-    # AI Fallback: no regex match but text looks like a command
-    if voice_processor and might_be_command(message.text):
+    # AI Fallback: no regex match → normalize via AI (dedicated bot group)
+    if voice_processor:
         try:
             command = voice_processor.normalize(message.text)
             if command:
