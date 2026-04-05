@@ -66,11 +66,15 @@ class DeleteModule(BaseModule):
         if last_pain:
             candidates.append(("pain", last_pain))
 
+        last_asset = self.db.get_last_asset()
+        if last_asset:
+            candidates.append(("asset", last_asset))
+
         if not candidates:
             return Response("Nothing to undo.")
 
-        # Find the most recent
-        candidates.sort(key=lambda x: x[1]["timestamp"], reverse=True)
+        # Find the most recent (assets use created_at instead of timestamp)
+        candidates.sort(key=lambda x: x[1].get("timestamp") or x[1].get("created_at", ""), reverse=True)
         entry_type, entry = candidates[0]
 
         if entry_type == "grocery":
@@ -86,6 +90,10 @@ class DeleteModule(BaseModule):
             self.db.delete_pain(entry["id"])
             msg = entry.get("message") or "no message"
             return Response(f"🗑 Deleted pain: {msg}")
+
+        if entry_type == "asset":
+            self.db.delete_asset(entry["id"])
+            return Response(f"🗑 Deleted asset: {entry['description']}")
 
         self.db.delete_entry(entry_type, entry["id"])
 

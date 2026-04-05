@@ -26,6 +26,7 @@ _COMMAND_HINTS = [
     "ouch", "aua", "autsch",
     "pain", "schmerz",
     "goal", "maxim", "goals", "maxims",
+    "asset", "assets",
 ]
 
 
@@ -55,6 +56,7 @@ from modules.ai_query.module import AIQueryModule
 from modules.ouch.module import OuchModule
 from modules.pain.module import PainModule
 from modules.goals.module import GoalsModule
+from modules.assets.module import AssetsModule
 
 register_module("help", HelpModule)
 register_module("expense", ExpenseModule)
@@ -62,6 +64,7 @@ register_module("time_log", TimeLogModule)
 register_module("ouch", OuchModule)
 register_module("pain", PainModule)
 register_module("goals", GoalsModule)
+register_module("assets", AssetsModule)
 register_module("delete", DeleteModule)
 register_module("reminders", RemindersModule)
 register_module("reports", ReportsModule)

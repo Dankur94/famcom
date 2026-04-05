@@ -12,6 +12,8 @@ modules:
     enabled: true
   goals:
     enabled: true
+  assets:
+    enabled: true
   reports:
     enabled: true
     daily_time: '08:00'

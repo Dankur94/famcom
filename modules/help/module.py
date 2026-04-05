@@ -43,6 +43,13 @@ HELP_TEXT = """\
   `pain headache since this morning`
   `pain back pain`
 
+🏠 *Assets*
+  `asset house germany 5M` — add asset
+  `asset @opa real estate berlin 5M` — for someone
+  `asset car toyota 250k` — supports k/M/B
+  `assets` — list all family assets
+  `delete asset 1` — remove asset #1
+
 🎯 *Goals*
   `goal save 10k this year` — add a goal
   `goals` — list your goals

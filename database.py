@@ -104,7 +104,47 @@ class Database:
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS assets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person TEXT NOT NULL,
+                description TEXT NOT NULL,
+                value_hkd REAL NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+
         self.conn.commit()
+
+    # --- Assets ---
+
+    def add_asset(self, person: str, description: str, value_hkd: float) -> dict:
+        ts = datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO assets (person, description, value_hkd, created_at) VALUES (?, ?, ?, ?)",
+                       (person, description, value_hkd, ts))
+        self.conn.commit()
+        return {"id": cursor.lastrowid, "person": person, "description": description,
+                "value_hkd": value_hkd, "created_at": ts}
+
+    def get_assets(self, person: str = None) -> list[dict]:
+        cursor = self.conn.cursor()
+        if person:
+            cursor.execute("SELECT * FROM assets WHERE person = ? ORDER BY value_hkd DESC", (person,))
+        else:
+            cursor.execute("SELECT * FROM assets ORDER BY person, value_hkd DESC")
+        return [dict(row) for row in cursor.fetchall()]
+
+    def delete_asset(self, asset_id: int):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+        self.conn.commit()
+
+    def get_last_asset(self) -> dict | None:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM assets ORDER BY created_at DESC LIMIT 1")
+        row = cursor.fetchone()
+        return dict(row) if row else None
 
     # --- Goals ---
 

@@ -16,6 +16,17 @@ def _fmt_time(minutes: int) -> str:
     return f"{minutes}min"
 
 
+def _fmt_value(amount: float) -> str:
+    """Format large numbers: 5000000 -> $5.0M."""
+    if amount >= 1_000_000_000:
+        return f"${amount / 1_000_000_000:.1f}B"
+    elif amount >= 1_000_000:
+        return f"${amount / 1_000_000:.1f}M"
+    elif amount >= 1_000:
+        return f"${amount / 1_000:.0f}k"
+    return f"${amount:,.0f}"
+
+
 class ReportsModule(BaseModule):
     VOICE_INFO = {
         "command": "report or weekly or monthly or today or total",
@@ -72,11 +83,18 @@ class ReportsModule(BaseModule):
         ouch_by_person = self.db.get_all_ouch_by_person()
         pain_by_person = self.db.get_all_pain_by_person()
 
+        # Assets grouped by person
+        all_assets = self.db.get_assets()
+        assets_by_person = {}
+        for a in all_assets:
+            assets_by_person.setdefault(a["person"], []).append(a)
+
         all_people = set()
         all_people.update(expenses_by_person.keys())
         all_people.update(time_by_person.keys())
         all_people.update(ouch_by_person.keys())
         all_people.update(pain_by_person.keys())
+        all_people.update(assets_by_person.keys())
 
         if not all_people:
             return "📒 *Kurth Family — Ledger*\n\nNo entries yet. Start logging with `$50 groceries` or `2h cooking`."
@@ -93,9 +111,12 @@ class ReportsModule(BaseModule):
         total_time = sum(d["total_min"] for d in time_by_person.values())
         total_ouch = sum(d["count"] for d in ouch_by_person.values())
         total_pain = sum(d["count"] for d in pain_by_person.values())
+        total_assets = sum(a["value_hkd"] for a in all_assets)
 
         lines.append(f"💰 Total spent: {_fmt_money(total_expenses)}")
         lines.append(f"⏱ Total time invested: {_fmt_time(total_time)}")
+        if total_assets:
+            lines.append(f"🏠 Total assets: {_fmt_value(total_assets)}")
         if total_ouch:
             lines.append(f"💔 Ouch moments: {total_ouch}")
         if total_pain:
@@ -103,19 +124,21 @@ class ReportsModule(BaseModule):
         lines.append("")
         lines.append("━━━━━━━━━━━━━━━")
 
-        # Per-person breakdown — sorted by total expenses descending
-        people_sorted = sorted(all_people, key=lambda p: expenses_by_person.get(p, {}).get("total", 0), reverse=True)
+        # Per-person breakdown — sorted by total (expenses + assets) descending
+        def _person_total(p):
+            exp = expenses_by_person.get(p, {}).get("total", 0)
+            ast = sum(a["value_hkd"] for a in assets_by_person.get(p, []))
+            return exp + ast
+        people_sorted = sorted(all_people, key=_person_total, reverse=True)
 
         for person in people_sorted:
             lines.append("")
-            person_total = expenses_by_person.get(person, {}).get("total", 0)
-            pct = (person_total / total_expenses * 100) if total_expenses > 0 else 0
-
             lines.append(f"👤 *{person}*")
 
             if person in expenses_by_person:
                 d = expenses_by_person[person]
-                lines.append(f"  💰 {_fmt_money(d['total'])} ({pct:.0f}% of total, {d['count']}x)")
+                pct = (d['total'] / total_expenses * 100) if total_expenses > 0 else 0
+                lines.append(f"  💰 {_fmt_money(d['total'])} ({pct:.0f}% of expenses, {d['count']}x)")
                 cats = sorted(d["categories"].items(), key=lambda x: -x[1])[:5]
                 for cat, amt in cats:
                     lines.append(f"    {cat}: {_fmt_money(amt)}")
@@ -126,6 +149,12 @@ class ReportsModule(BaseModule):
                 cats = sorted(d["categories"].items(), key=lambda x: -x[1])[:5]
                 for cat, mins in cats:
                     lines.append(f"    {cat}: {_fmt_time(mins)}")
+
+            if person in assets_by_person:
+                person_asset_total = sum(a["value_hkd"] for a in assets_by_person[person])
+                lines.append(f"  🏠 Assets: {_fmt_value(person_asset_total)}")
+                for a in assets_by_person[person]:
+                    lines.append(f"    {a['description']}: {_fmt_value(a['value_hkd'])}")
 
             if person in ouch_by_person:
                 d = ouch_by_person[person]
