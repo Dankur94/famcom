@@ -62,7 +62,7 @@ HELP_TEXT = """\
 
 📋 *Todos*
   `todo buy groceries` — add a todo
-  `todo @opa go to doctor` — for someone
+  `todo opa go to doctor` — for someone
   `done 3` — mark todo #3 as done
   `delete todo 3` — remove todo #3
   `todos` — list open todos

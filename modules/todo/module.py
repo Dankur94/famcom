@@ -3,8 +3,8 @@
 import re
 from modules.base import BaseModule, Message, Response, ScheduledJob
 
-# todo buy groceries / todo @opa mobbing
-_TODO_ADD = re.compile(r'^todo\s+(?:@(\w+)\s+)?(.+)', re.IGNORECASE)
+# todo buy groceries / todo @opa mobbing / todo opa mobbing
+_TODO_ADD = re.compile(r'^todo\s+(.+)', re.IGNORECASE)
 # done 3
 _DONE = re.compile(r'^done\s+(\d+)\s*$', re.IGNORECASE)
 # delete todo 3
@@ -13,10 +13,10 @@ _DELETE = re.compile(r'^delete\s+todo\s+(\d+)\s*$', re.IGNORECASE)
 
 class TodoModule(BaseModule):
     VOICE_INFO = {
-        "command": "todo TEXT or todo @person TEXT, done ID, todos",
+        "command": "todo TEXT or todo PERSON TEXT, done ID, todos",
         "examples": [
             ("add a todo buy groceries", "todo buy groceries"),
-            ("todo for opa go to the doctor", "todo @opa go to the doctor"),
+            ("todo for opa go to the doctor", "todo opa go to the doctor"),
             ("mark todo 3 as done", "done 3"),
             ("show all todos", "todos"),
         ],
@@ -84,16 +84,18 @@ class TodoModule(BaseModule):
         # Add todo
         am = _TODO_ADD.match(t)
         if am:
-            alias = am.group(1)
-            text = am.group(2).strip()
-            if alias:
-                target = self._resolve_alias(alias)
-                if not target:
-                    return Response(f"Unknown member: @{alias}")
-            else:
-                target = person
-            entry = self.db.add_todo(target, text)
-            return Response(f"\U0001f4cb Todo #{entry['id']} for *{target}*: {text}")
+            rest = am.group(1).strip()
+            # Check if first word is @alias or a known member name
+            target = person
+            words = rest.split(None, 1)
+            if words:
+                first = words[0].lstrip("@")
+                resolved = self._resolve_alias(first)
+                if resolved and len(words) > 1:
+                    target = resolved
+                    rest = words[1]
+            entry = self.db.add_todo(target, rest)
+            return Response(f"\U0001f4cb Todo #{entry['id']} for *{target}*: {rest}")
 
         return None
 
