@@ -71,11 +71,13 @@ class ReportsModule(BaseModule):
         expenses_by_person = self.db.get_all_expenses_by_person()
         time_by_person = self.db.get_all_time_by_person()
         thanks_by_person = self.db.get_all_thanks_by_person()
+        ouch_by_person = self.db.get_all_ouch_by_person()
 
         all_people = set()
         all_people.update(expenses_by_person.keys())
         all_people.update(time_by_person.keys())
         all_people.update(thanks_by_person.keys())
+        all_people.update(ouch_by_person.keys())
 
         if not all_people:
             return "📒 *Familie Kurth — Ledger*\n\nNo entries yet. Start logging with `$50 groceries` or `2h cooking`."
@@ -91,10 +93,13 @@ class ReportsModule(BaseModule):
         total_expenses = sum(d["total"] for d in expenses_by_person.values())
         total_time = sum(d["total_min"] for d in time_by_person.values())
         total_thanks = sum(d["count"] for d in thanks_by_person.values())
+        total_ouch = sum(d["count"] for d in ouch_by_person.values())
 
         lines.append(f"💰 Total spent: {_fmt_money(total_expenses)}")
         lines.append(f"⏱ Total time invested: {_fmt_time(total_time)}")
         lines.append(f"🙏 Total kudos: {total_thanks}")
+        if total_ouch:
+            lines.append(f"💔 Ouch moments: {total_ouch}")
         lines.append("")
         lines.append("━━━━━━━━━━━━━━━")
 
@@ -131,17 +136,24 @@ class ReportsModule(BaseModule):
                 d = thanks_by_person[person]
                 lines.append(f"  🙏 {d['count']} kudos received")
 
+            # Ouch logged
+            if person in ouch_by_person:
+                d = ouch_by_person[person]
+                lines.append(f"  💔 {d['count']} ouch moment{'s' if d['count'] != 1 else ''}")
+
         return "\n".join(lines)
 
     def _build_report(self, title: str, start: str, end: str) -> str:
         expenses_by_person = self.db.get_expenses_by_person(start, end)
         time_by_person = self.db.get_time_by_person(start, end)
         thanks_by_person = self.db.get_thanks_by_person(start, end)
+        ouch_by_person = self.db.get_ouch_by_person(start, end)
 
         all_people = set()
         all_people.update(expenses_by_person.keys())
         all_people.update(time_by_person.keys())
         all_people.update(thanks_by_person.keys())
+        all_people.update(ouch_by_person.keys())
 
         if not all_people:
             return f"📊 *{title}*\n\nNo entries yet."
@@ -151,10 +163,13 @@ class ReportsModule(BaseModule):
         total_expenses = sum(d["total"] for d in expenses_by_person.values())
         total_time = sum(d["total_min"] for d in time_by_person.values())
         total_thanks = sum(d["count"] for d in thanks_by_person.values())
+        total_ouch = sum(d["count"] for d in ouch_by_person.values())
 
         lines.append(f"💰 Total expenses: {_fmt_money(total_expenses)}")
         lines.append(f"⏱ Total time: {_fmt_time(total_time)}")
         lines.append(f"🙏 Total thanks: {total_thanks}")
+        if total_ouch:
+            lines.append(f"💔 Ouch moments: {total_ouch}")
         lines.append("")
 
         for person in sorted(all_people):
@@ -175,6 +190,10 @@ class ReportsModule(BaseModule):
             if person in thanks_by_person:
                 d = thanks_by_person[person]
                 lines.append(f"  🙏 {d['count']} kudos received")
+
+            if person in ouch_by_person:
+                d = ouch_by_person[person]
+                lines.append(f"  💔 {d['count']} ouch moment{'s' if d['count'] != 1 else ''}")
 
             lines.append("")
 

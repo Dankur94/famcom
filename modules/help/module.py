@@ -37,6 +37,11 @@ HELP_TEXT = """\
   `remind me in 2h pick up laundry`
   `reminders` — show upcoming
 
+💔 *Ouch*
+  `ouch` — signal something hurt
+  `ouch du hast mich angeschrien` — with context
+  `ouch @babe das war gemein` — about someone
+
 🗑 *Delete*
   `undo` — delete last entry
   `delete expense 14:30`

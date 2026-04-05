@@ -24,6 +24,7 @@ _COMMAND_HINTS = [
     "report", "weekly", "monthly", "woche", "monat",
     "loeschen", "löschen", "undo", "delete",
     "hilfe", "help",
+    "ouch", "aua", "autsch",
 ]
 
 
@@ -51,11 +52,13 @@ from modules.reminders.module import RemindersModule
 from modules.reports.module import ReportsModule
 from modules.groceries.module import GroceriesModule
 from modules.ai_query.module import AIQueryModule
+from modules.ouch.module import OuchModule
 
 register_module("help", HelpModule)
 register_module("expense", ExpenseModule)
 register_module("time_log", TimeLogModule)
 register_module("thanks", ThanksModule)
+register_module("ouch", OuchModule)
 register_module("delete", DeleteModule)
 register_module("reminders", RemindersModule)
 register_module("reports", ReportsModule)

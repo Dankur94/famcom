@@ -8,6 +8,8 @@ modules:
     enabled: true
   thanks:
     enabled: true
+  ouch:
+    enabled: true
   reports:
     enabled: true
     weekly_day: sun

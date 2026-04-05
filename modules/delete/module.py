@@ -63,6 +63,10 @@ class DeleteModule(BaseModule):
         if last_grocery:
             candidates.append(("grocery", last_grocery))
 
+        last_ouch = self.db.get_last_ouch()
+        if last_ouch:
+            candidates.append(("ouch", last_ouch))
+
         if not candidates:
             return Response("Nothing to undo.")
 
@@ -73,6 +77,11 @@ class DeleteModule(BaseModule):
         if entry_type == "grocery":
             self.db.delete_grocery(entry["id"])
             return Response(f"🗑 Deleted grocery: {entry['item']}")
+
+        if entry_type == "ouch":
+            self.db.delete_ouch(entry["id"])
+            msg = entry.get("message") or "no message"
+            return Response(f"🗑 Deleted ouch: {msg}")
 
         self.db.delete_entry(entry_type, entry["id"])
 

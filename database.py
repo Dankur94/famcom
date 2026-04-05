@@ -67,6 +67,16 @@ class Database:
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ouch_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                logged_by TEXT NOT NULL,
+                about_user TEXT,
+                message TEXT,
+                timestamp TEXT NOT NULL
+            )
+        """)
+
         self.conn.commit()
 
     # --- Grocery Items ---
@@ -105,6 +115,67 @@ class Database:
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM grocery_items WHERE id = ?", (entry_id,))
         self.conn.commit()
+
+    # --- Ouch Entries ---
+
+    def add_ouch(self, logged_by: str, about_user: str = None,
+                 message: str = None, timestamp: str = None) -> dict:
+        ts = timestamp or datetime.now().isoformat()
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "INSERT INTO ouch_entries (logged_by, about_user, message, timestamp) VALUES (?, ?, ?, ?)",
+            (logged_by, about_user, message, ts)
+        )
+        self.conn.commit()
+        return {"id": cursor.lastrowid, "logged_by": logged_by, "about_user": about_user,
+                "message": message, "timestamp": ts}
+
+    def get_ouch_range(self, start: str, end: str) -> list[dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM ouch_entries WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp",
+                       (start, end))
+        return [dict(row) for row in cursor.fetchall()]
+
+    def get_last_ouch(self) -> dict | None:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM ouch_entries ORDER BY timestamp DESC LIMIT 1")
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def delete_ouch(self, entry_id: int):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM ouch_entries WHERE id = ?", (entry_id,))
+        self.conn.commit()
+
+    def get_all_ouch_by_person(self) -> dict:
+        """All-time ouch entries per person (logged_by)."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM ouch_entries ORDER BY timestamp")
+        entries = [dict(row) for row in cursor.fetchall()]
+        result = {}
+        for e in entries:
+            person = e["logged_by"]
+            if person not in result:
+                result[person] = {"count": 0, "about": {}}
+            result[person]["count"] += 1
+            about = e["about_user"]
+            if about:
+                result[person]["about"][about] = result[person]["about"].get(about, 0) + 1
+        return result
+
+    def get_ouch_by_person(self, start: str, end: str) -> dict:
+        """Ouch entries per person for a date range."""
+        entries = self.get_ouch_range(start, end)
+        result = {}
+        for e in entries:
+            person = e["logged_by"]
+            if person not in result:
+                result[person] = {"count": 0, "about": {}}
+            result[person]["count"] += 1
+            about = e["about_user"]
+            if about:
+                result[person]["about"][about] = result[person]["about"].get(about, 0) + 1
+        return result
 
     # --- Expenses ---
 

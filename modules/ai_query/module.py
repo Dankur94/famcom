@@ -13,10 +13,12 @@ time_entries(id, minutes INTEGER, category TEXT, description TEXT, logged_by TEX
 thanks(id, from_user TEXT, to_user TEXT, message TEXT, timestamp TEXT)
 reminders(id, created_by TEXT, remind_at TEXT, message TEXT, is_sent INTEGER, created_at TEXT)
 grocery_items(id, item TEXT, quantity TEXT, bought_by TEXT, timestamp TEXT)
+ouch_entries(id, logged_by TEXT, about_user TEXT, message TEXT, timestamp TEXT)
 
 All timestamps are ISO format (e.g. 2026-04-05T14:30:00).
 Currency is HKD. Time entries are in minutes.
-Members: Daniel, Babe, Gerold."""
+Members: Daniel, Babe, Gerold.
+ouch_entries tracks hurtful moments. logged_by = who felt hurt, about_user = who caused it (optional)."""
 
 _SQL_PROMPT = f"""\
 You are a SQL assistant for a family tracking app (FamCom).
