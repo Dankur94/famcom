@@ -32,7 +32,9 @@ Important:
 - For "today": WHERE timestamp >= date('now')
 - For "this month": WHERE timestamp >= date('now', 'start of month')
 - Always ORDER BY timestamp DESC unless asked otherwise
-- LIMIT 50 max to avoid huge results"""
+- LIMIT 50 max to avoid huge results
+- For DELETE requests: use DELETE FROM table WHERE conditions. Be precise.
+- You may use SELECT or DELETE. No UPDATE, INSERT, DROP, or ALTER."""
 
 _FORMAT_PROMPT = """\
 You format SQL query results into a clean WhatsApp message.
@@ -90,13 +92,20 @@ class AIQueryModule(BaseModule):
             if sql.upper() == "NONE":
                 return Response("I can't answer that with a database query.")
 
-            # Safety: only allow SELECT
-            if not sql.upper().startswith("SELECT"):
-                return Response("Only read queries are allowed.")
+            # Safety: only allow SELECT and DELETE
+            sql_upper = sql.upper().strip()
+            if not (sql_upper.startswith("SELECT") or sql_upper.startswith("DELETE")):
+                return Response("Only SELECT and DELETE queries are allowed.")
 
             # Step 2: Execute query
             cursor = self.db.conn.cursor()
             cursor.execute(sql)
+
+            if sql_upper.startswith("DELETE"):
+                affected = cursor.rowcount
+                self.db.conn.commit()
+                return Response(f"\U0001f916 Deleted {affected} row(s).")
+
             columns = [desc[0] for desc in cursor.description] if cursor.description else []
             rows = cursor.fetchall()
 
