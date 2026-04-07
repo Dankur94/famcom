@@ -35,12 +35,14 @@ class ReportsModule(BaseModule):
 
     def handle(self, message: Message) -> Response | None:
         parts = []
-        for person in self._members:
-            parts.append(self._build_personal_report(person))
+        for person, info in self._members.items():
+            label = info.get("label", person) if isinstance(info, dict) else person
+            parts.append(self._build_personal_report(person, label))
         divider = chr(10)*2 + chr(9473)*15 + chr(10)*2
         return Response(divider.join(parts))
 
-    def _build_personal_report(self, person: str) -> str:
+    def _build_personal_report(self, person: str, label: str = None) -> str:
+        display = label or person
         today = date.today()
         start = today.isoformat()
         end = (today + timedelta(days=1)).isoformat()
@@ -55,7 +57,7 @@ class ReportsModule(BaseModule):
         smiles_alltime = self.db.get_smiles_alltime(person)
 
         lines = [
-            f"\U0001f495 *HeartSync \u2014 {person}*",
+            f"\U0001f495 *HeartSync \u2014 {display}*",
             f"\U0001f4c5 {date_str}",
             "",
         ]
@@ -81,8 +83,9 @@ class ReportsModule(BaseModule):
     def _daily_reports_scheduled(self) -> list[Response]:
         """Generate one report per member for the 22:00 scheduled send."""
         reports = []
-        for person in self._members:
-            text = self._build_personal_report(person)
+        for person, info in self._members.items():
+            label = info.get("label", person) if isinstance(info, dict) else person
+            text = self._build_personal_report(person, label)
             reports.append(Response(text))
         return reports
 
