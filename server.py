@@ -1,11 +1,11 @@
-"""FamCom — FastAPI server with WhatsApp bridge and message routing."""
+"""HeartSync — FastAPI server with WhatsApp bridge and message routing."""
 
 import re
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 
-logger = logging.getLogger("famcom")
+logger = logging.getLogger("heartsync")
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from registry import load_config, load_enabled_modules, route_message
@@ -16,18 +16,11 @@ from modules.base import Message
 
 # Keywords that hint at a bot command (DE + EN)
 _COMMAND_HINTS = [
-    "ausgabe", "ausgegeben", "bezahlt", "gekauft", "spent", "paid", "bought",
-    "expense", "groceries", "taxi", "lunch", "dinner",
-    "stunde", "stunden", "minuten", "cooking", "cleaning", "putzen", "kochen",
-    "erinner", "remind", "reminder",
-    "report", "weekly", "monthly", "woche", "monat",
+    "ouch", "aua", "autsch", "hurt", "verletzt",
+    "smile", "smiled", "laugh", "laughed", "lol", "haha", "joy", "gelacht", "smilejar",
+    "report", "today", "status",
     "loeschen", "löschen", "undo", "delete",
     "hilfe", "help",
-    "ouch", "aua", "autsch",
-    "pain", "schmerz",
-    "goal", "maxim", "goals", "maxims",
-    "asset", "assets",
-    "todo", "todos", "done",
 ]
 
 
@@ -36,54 +29,34 @@ def might_be_command(text: str) -> bool:
     t = text.lower().strip()
     if len(t) < 3:
         return False
-    if t.startswith('$'):
-        return True
-    if re.search(r'\d', t):
-        return True
-    if t.startswith(('+', '-', '!')):
+    if t.startswith(('!', '+', '-')):
         return True
     return any(kw in t for kw in _COMMAND_HINTS)
 
 # --- Import and register all modules ---
 from registry import register_module
 from modules.help.module import HelpModule
-from modules.expense.module import ExpenseModule
-from modules.time_log.module import TimeLogModule
-from modules.delete.module import DeleteModule
-from modules.reminders.module import RemindersModule
-from modules.reports.module import ReportsModule
-from modules.groceries.module import GroceriesModule
-from modules.ai_query.module import AIQueryModule
 from modules.ouch.module import OuchModule
-from modules.pain.module import PainModule
-from modules.goals.module import GoalsModule
-from modules.assets.module import AssetsModule
-from modules.todo.module import TodoModule
+from modules.smile.module import SmileModule
+from modules.reports.module import ReportsModule
+from modules.delete.module import DeleteModule
 
 register_module("help", HelpModule)
-register_module("expense", ExpenseModule)
-register_module("time_log", TimeLogModule)
-register_module("ouch", OuchModule)
-register_module("pain", PainModule)
-register_module("goals", GoalsModule)
-register_module("assets", AssetsModule)
-register_module("todo", TodoModule)
-register_module("delete", DeleteModule)
-register_module("reminders", RemindersModule)
+register_module("hurt", OuchModule)
+register_module("smile", SmileModule)
 register_module("reports", ReportsModule)
-register_module("groceries", GroceriesModule)
-register_module("ai_query", AIQueryModule)
+register_module("delete", DeleteModule)
 
 # --- Globals ---
 config = load_config()
 db = Database(
-    path=config.get("database", {}).get("path", "famcom.db"),
+    path=config.get("database", {}).get("path", "heartsync.db"),
 )
 wa = WhatsAppClient(config["whatsapp"])
 modules = load_enabled_modules(config, db)
 scheduler = AsyncIOScheduler()
 
-# Pass members config to modules that support @person
+# Pass members config to modules that support it
 members_config = config.get("members", {})
 for mod in modules:
     if hasattr(mod, "set_members"):
@@ -93,12 +66,16 @@ for mod in modules:
 voice_config = config.get("voice", {})
 voice_processor = VoiceProcessor(voice_config, modules, members_config) if voice_config.get("enabled") else None
 
-TRACKING_MODULES = {"expense", "timelog", "thanks", "delete"}
-
 
 def _send_scheduled(response):
-    """Send a scheduled message (reminder, report) via the bridge."""
-    if response:
+    """Send scheduled message(s) via the bridge. Supports single Response or list[Response]."""
+    if not response:
+        return
+    if isinstance(response, list):
+        for r in response:
+            if r:
+                wa.send_message(r.text)
+    else:
         wa.send_message(response.text)
 
 
@@ -123,7 +100,7 @@ async def lifespan(app: FastAPI):
                 replace_existing=True,
             )
     scheduler.start()
-    print(f"FamCom started — {len(modules)} modules loaded")
+    print(f"HeartSync started — {len(modules)} modules loaded")
     yield
     # Shutdown
     scheduler.shutdown()
@@ -149,7 +126,7 @@ async def handle_message(request: Request):
         return {"reply": response.text}
 
     # AI Fallback: no regex match → normalize via AI (dedicated bot group)
-    if voice_processor:
+    if voice_processor and might_be_command(message.text):
         try:
             command = voice_processor.normalize(message.text)
             if command:
@@ -166,7 +143,7 @@ async def handle_message(request: Request):
         except Exception:
             pass  # AI down → bot stays silent, regex still works
 
-    # No match — bot stays silent (normal family conversation)
+    # No match — bot stays silent (normal conversation)
     return {"reply": None}
 
 

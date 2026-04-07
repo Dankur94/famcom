@@ -1,0 +1,28 @@
+whatsapp:
+  bridge_url: http://localhost:3002
+  group_name: HeartSync
+modules:
+  hurt:
+    enabled: true
+  smile:
+    enabled: true
+  reports:
+    enabled: true
+    daily_time: '22:00'
+  help:
+    enabled: true
+  delete:
+    enabled: true
+members:
+  Daniel:
+    aliases: [daniel, ich, me, i]
+  Babe:
+    aliases: [babe, frau, wife, mama]
+voice:
+  enabled: true
+  groq_api_key: YOUR_GROQ_API_KEY
+  deepseek_api_key: YOUR_DEEPSEEK_API_KEY
+  deepseek_base_url: https://api.deepseek.com
+  deepseek_model: deepseek-chat
+database:
+  path: heartsync.db

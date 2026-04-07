@@ -1,335 +1,102 @@
-"""Reports module — weekly/monthly/all-time per-person breakdown + daily 8am summary."""
+"""Reports module — personal daily reports for each member."""
 
 import re
 from datetime import datetime, date, timedelta
 from modules.base import BaseModule, Message, Response, ScheduledJob
 
 
-def _fmt_money(amount: float) -> str:
-    return f"${amount:,.0f}"
-
-
-def _fmt_time(minutes: int) -> str:
-    if minutes >= 60:
-        h = minutes / 60
-        return f"{h:.1f}h"
-    return f"{minutes}min"
-
-
-def _fmt_value(amount: float) -> str:
-    """Format large numbers: 5000000 -> $5.0M."""
-    if amount >= 1_000_000_000:
-        return f"${amount / 1_000_000_000:.1f}B"
-    elif amount >= 1_000_000:
-        return f"${amount / 1_000_000:.1f}M"
-    elif amount >= 1_000:
-        return f"${amount / 1_000:.0f}k"
-    return f"${amount:,.0f}"
+def _truncate(text: str, maxlen: int = 35) -> str:
+    """Truncate to ~1 iPhone WhatsApp line."""
+    if len(text) <= maxlen:
+        return text
+    return text[:maxlen - 1].rstrip() + "\u2026"
 
 
 class ReportsModule(BaseModule):
     VOICE_INFO = {
-        "command": "report or weekly or monthly or today or total",
+        "command": "report or today or status",
         "examples": [
-            ("show me the weekly report", "weekly"),
-            ("how is this week looking", "report"),
-            ("monthly summary", "monthly"),
-            ("what happened today", "today"),
-            ("show me everything", "total"),
-            ("who contributed what overall", "total"),
+            ("how is today looking", "today"),
+            ("show me my report", "report"),
+            ("status", "status"),
         ],
     }
 
+    def __init__(self, config: dict, db=None):
+        super().__init__(config, db)
+        self._members = {}
+
+    def set_members(self, members_config: dict):
+        self._members = members_config
+
     def can_handle(self, message: Message) -> bool:
         t = message.text.strip().lower()
-        return t in ("report", "weekly", "monthly", "today", "status",
-                      "summary", "total", "all", "gesamt", "ledger")
+        return t in ("report", "today", "status")
 
     def handle(self, message: Message) -> Response | None:
-        t = message.text.strip().lower()
-        if t == "monthly":
-            return Response(self._monthly_report())
-        elif t == "today":
-            return Response(self._today_report())
-        elif t in ("total", "all", "gesamt", "ledger"):
-            return Response(self._total_report())
-        else:
-            return Response(self._weekly_report())
+        report = self._build_personal_report(message.sender)
+        return Response(report)
 
-    def _today_report(self) -> str:
-        today = date.today().isoformat()
-        tomorrow = (date.today() + timedelta(days=1)).isoformat()
-        return self._build_report("Today", today, tomorrow)
-
-    def _weekly_report(self) -> str:
+    def _build_personal_report(self, person: str) -> str:
         today = date.today()
-        start = today - timedelta(days=today.weekday())
-        end = start + timedelta(days=7)
-        return self._build_report("This Week", start.isoformat(), end.isoformat())
+        start = today.isoformat()
+        end = (today + timedelta(days=1)).isoformat()
+        date_str = today.strftime("%B %-d") if not _is_windows() else today.strftime("%B %d").lstrip("0").replace(" 0", " ")
 
-    def _monthly_report(self) -> str:
-        today = date.today()
-        start = today.replace(day=1)
-        if today.month == 12:
-            end = today.replace(year=today.year + 1, month=1, day=1)
-        else:
-            end = today.replace(month=today.month + 1, day=1)
-        return self._build_report("This Month", start.isoformat(), end.isoformat())
+        # Hurt data
+        ouch_today = self.db.get_ouch_today(person)
+        ouch_alltime = self.db.get_ouch_alltime(person)
 
-    def _total_report(self) -> str:
-        """All-time family ledger."""
-        expenses_by_person = self.db.get_all_expenses_by_person()
-        time_by_person = self.db.get_all_time_by_person()
-        ouch_by_person = self.db.get_all_ouch_by_person()
-        pain_by_person = self.db.get_all_pain_by_person()
+        # Smile data
+        smiles_today = self.db.get_smiles_today(person)
+        smiles_alltime = self.db.get_smiles_alltime(person)
 
-        # Assets grouped by person
-        all_assets = self.db.get_assets()
-        assets_by_person = {}
-        for a in all_assets:
-            assets_by_person.setdefault(a["person"], []).append(a)
+        lines = [
+            f"\U0001f495 *HeartSync \u2014 {person}*",
+            f"\U0001f4c5 {date_str}",
+            "",
+        ]
 
-        all_people = set()
-        all_people.update(expenses_by_person.keys())
-        all_people.update(time_by_person.keys())
-        all_people.update(ouch_by_person.keys())
-        all_people.update(pain_by_person.keys())
-        all_people.update(assets_by_person.keys())
+        # Hurt section
+        hurt_count = len(ouch_today)
+        lines.append(f"\U0001f494 *Hurt* ({hurt_count} today \u00b7 {ouch_alltime} all-time)")
+        for entry in ouch_today:
+            ts = datetime.fromisoformat(entry["timestamp"]).strftime("%H:%M")
+            msg = _truncate(entry.get("message") or "")
+            lines.append(f"\u2022 {ts} \u2014 {msg}")
 
-        if not all_people:
-            return "📒 *Kurth Family — Ledger*\n\nNo entries yet. Start logging with `$50 groceries` or `2h cooking`."
-
-        first_date = self.db.get_first_entry_date()
-        since = ""
-        if first_date:
-            since = f" (since {datetime.fromisoformat(first_date).strftime('%d.%m.%Y')})"
-
-        lines = [f"📒 *Kurth Family — Ledger*{since}", ""]
-
-        # Grand totals
-        total_expenses = sum(d["total"] for d in expenses_by_person.values())
-        total_time = sum(d["total_min"] for d in time_by_person.values())
-        total_ouch = sum(d["count"] for d in ouch_by_person.values())
-        total_pain = sum(d["count"] for d in pain_by_person.values())
-        total_assets = sum(a["value_hkd"] for a in all_assets)
-
-        lines.append(f"💰 Total spent: {_fmt_money(total_expenses)}")
-        lines.append(f"⏱ Total time invested: {_fmt_time(total_time)}")
-        if total_assets:
-            lines.append(f"🏠 Total assets: {_fmt_value(total_assets)}")
-        if total_ouch:
-            lines.append(f"💔 Ouch moments: {total_ouch}")
-        if total_pain:
-            lines.append(f"🩹 Pain entries: {total_pain}")
         lines.append("")
-        lines.append("━━━━━━━━━━━━━━━")
 
-        # Per-person breakdown — sorted by total (expenses + assets) descending
-        def _person_total(p):
-            exp = expenses_by_person.get(p, {}).get("total", 0)
-            ast = sum(a["value_hkd"] for a in assets_by_person.get(p, []))
-            return exp + ast
-        people_sorted = sorted(all_people, key=_person_total, reverse=True)
+        # SmileJar section
+        lines.append(f"\U0001f60a *SmileJar* ({smiles_today} today \u00b7 {smiles_alltime} all-time)")
 
-        for person in people_sorted:
-            lines.append("")
-            lines.append(f"👤 *{person}*")
-
-            if person in expenses_by_person:
-                d = expenses_by_person[person]
-                pct = (d['total'] / total_expenses * 100) if total_expenses > 0 else 0
-                lines.append(f"  💰 {_fmt_money(d['total'])} ({pct:.0f}% of expenses, {d['count']}x)")
-                cats = sorted(d["categories"].items(), key=lambda x: -x[1])[:5]
-                for cat, amt in cats:
-                    lines.append(f"    {cat}: {_fmt_money(amt)}")
-
-            if person in time_by_person:
-                d = time_by_person[person]
-                lines.append(f"  ⏱ {_fmt_time(d['total_min'])} ({d['count']}x)")
-                cats = sorted(d["categories"].items(), key=lambda x: -x[1])[:5]
-                for cat, mins in cats:
-                    lines.append(f"    {cat}: {_fmt_time(mins)}")
-
-            if person in assets_by_person:
-                person_asset_total = sum(a["value_hkd"] for a in assets_by_person[person])
-                lines.append(f"  🏠 Assets: {_fmt_value(person_asset_total)}")
-                for a in assets_by_person[person]:
-                    lines.append(f"    {a['description']}: {_fmt_value(a['value_hkd'])}")
-
-            if person in ouch_by_person:
-                d = ouch_by_person[person]
-                lines.append(f"  💔 {d['count']} ouch moment{'s' if d['count'] != 1 else ''}")
-
-            if person in pain_by_person:
-                d = pain_by_person[person]
-                lines.append(f"  🩹 {d['count']} pain entr{'ies' if d['count'] != 1 else 'y'}")
+        lines.append("")
+        lines.append("\u2728 Keep sharing. Keep growing. \U0001f495")
 
         return "\n".join(lines)
 
-    def _build_report(self, title: str, start: str, end: str) -> str:
-        expenses_by_person = self.db.get_expenses_by_person(start, end)
-        time_by_person = self.db.get_time_by_person(start, end)
-        ouch_by_person = self.db.get_ouch_by_person(start, end)
-        pain_by_person = self.db.get_pain_by_person(start, end)
-
-        all_people = set()
-        all_people.update(expenses_by_person.keys())
-        all_people.update(time_by_person.keys())
-        all_people.update(ouch_by_person.keys())
-        all_people.update(pain_by_person.keys())
-
-        if not all_people:
-            return f"📊 *{title}*\n\nNo entries yet."
-
-        lines = [f"📊 *{title}*", ""]
-
-        total_expenses = sum(d["total"] for d in expenses_by_person.values())
-        total_time = sum(d["total_min"] for d in time_by_person.values())
-        total_ouch = sum(d["count"] for d in ouch_by_person.values())
-        total_pain = sum(d["count"] for d in pain_by_person.values())
-
-        lines.append(f"💰 Total expenses: {_fmt_money(total_expenses)}")
-        lines.append(f"⏱ Total time: {_fmt_time(total_time)}")
-        if total_ouch:
-            lines.append(f"💔 Ouch moments: {total_ouch}")
-        if total_pain:
-            lines.append(f"🩹 Pain entries: {total_pain}")
-        lines.append("")
-
-        for person in sorted(all_people):
-            lines.append(f"*{person}:*")
-
-            if person in expenses_by_person:
-                d = expenses_by_person[person]
-                lines.append(f"  💰 {_fmt_money(d['total'])} ({d['count']}x)")
-                for cat, amt in sorted(d["categories"].items(), key=lambda x: -x[1]):
-                    lines.append(f"    {cat}: {_fmt_money(amt)}")
-
-            if person in time_by_person:
-                d = time_by_person[person]
-                lines.append(f"  ⏱ {_fmt_time(d['total_min'])} ({d['count']}x)")
-                for cat, mins in sorted(d["categories"].items(), key=lambda x: -x[1]):
-                    lines.append(f"    {cat}: {_fmt_time(mins)}")
-
-            if person in ouch_by_person:
-                d = ouch_by_person[person]
-                lines.append(f"  💔 {d['count']} ouch moment{'s' if d['count'] != 1 else ''}")
-
-            if person in pain_by_person:
-                d = pain_by_person[person]
-                lines.append(f"  🩹 {d['count']} pain entr{'ies' if d['count'] != 1 else 'y'}")
-
-            lines.append("")
-
-        return "\n".join(lines).strip()
-
-    # --- Daily 8am Summary (yesterday per person) ---
-
-    def _daily_summary(self) -> str:
-        """Yesterday's per-person summary: contributions, ouch, pain + goals & maxims."""
-        yesterday = date.today() - timedelta(days=1)
-        start = yesterday.isoformat()
-        end = date.today().isoformat()
-        day_str = yesterday.strftime("%d.%m.%Y")
-
-        expenses_by_person = self.db.get_expenses_by_person(start, end)
-        time_by_person = self.db.get_time_by_person(start, end)
-        ouch_by_person = self.db.get_ouch_by_person(start, end)
-        pain_by_person = self.db.get_pain_by_person(start, end)
-
-        # Get all goals/maxims (always show, not just yesterday)
-        all_goals = self.db.get_all_goals()
-        all_maxims = self.db.get_all_maxims()
-        goals_by_person = {}
-        for g in all_goals:
-            goals_by_person.setdefault(g["person"], []).append(g["text"])
-        maxims_by_person = {}
-        for m in all_maxims:
-            maxims_by_person.setdefault(m["person"], []).append(m["text"])
-
-        # Open todos per person
-        open_todos = self.db.get_open_todos()
-        todos_by_person = {}
-        for t in open_todos:
-            todos_by_person.setdefault(t["person"], []).append(t)
-
-        all_people = set()
-        all_people.update(expenses_by_person.keys())
-        all_people.update(time_by_person.keys())
-        all_people.update(ouch_by_person.keys())
-        all_people.update(pain_by_person.keys())
-        all_people.update(goals_by_person.keys())
-        all_people.update(maxims_by_person.keys())
-        all_people.update(todos_by_person.keys())
-
-        if not all_people:
-            return f"☀️ *Good Morning — {day_str}*\n\nNo entries yesterday."
-
-        lines = [f"☀️ *Good Morning — {day_str}*", ""]
-
-        for person in sorted(all_people):
-            lines.append(f"👤 *{person}*")
-
-            if person in expenses_by_person:
-                d = expenses_by_person[person]
-                lines.append(f"  💰 {_fmt_money(d['total'])} ({d['count']}x)")
-
-            if person in time_by_person:
-                d = time_by_person[person]
-                lines.append(f"  ⏱ {_fmt_time(d['total_min'])} ({d['count']}x)")
-
-            if person in ouch_by_person:
-                d = ouch_by_person[person]
-                lines.append(f"  💔 {d['count']} ouch")
-
-            if person in pain_by_person:
-                d = pain_by_person[person]
-                lines.append(f"  🩹 {d['count']} pain")
-
-            if person in goals_by_person:
-                lines.append(f"  🎯 *Goals:*")
-                for g in goals_by_person[person]:
-                    lines.append(f"    • {g}")
-
-            if person in maxims_by_person:
-                lines.append(f"  ✨ *Maxims:*")
-                for m in maxims_by_person[person]:
-                    lines.append(f"    • {m}")
-
-            if person in todos_by_person:
-                lines.append(f"  📋 *Todos:*")
-                for t in todos_by_person[person]:
-                    lines.append(f"    ☐ #{t['id']} {t['text']}")
-
-            lines.append("")
-
-        return "\n".join(lines).strip()
-
-    def _daily_summary_scheduled(self) -> Response | None:
-        return Response(self._daily_summary())
-
-    def _weekly_report_scheduled(self) -> Response | None:
-        return Response(self._weekly_report())
+    def _daily_reports_scheduled(self) -> list[Response]:
+        """Generate one report per member for the 22:00 scheduled send."""
+        reports = []
+        for person in self._members:
+            text = self._build_personal_report(person)
+            reports.append(Response(text))
+        return reports
 
     def get_scheduled_jobs(self) -> list[ScheduledJob]:
-        day = self.config.get("weekly_day", "sun")
-        time_str = self.config.get("weekly_time", "20:00")
-        h, m = map(int, time_str.split(":"))
-
-        daily_time = self.config.get("daily_time", "08:00")
+        daily_time = self.config.get("daily_time", "22:00")
         dh, dm = map(int, daily_time.split(":"))
 
         return [
             ScheduledJob(
-                job_id="famcom_weekly_report",
-                func=self._weekly_report_scheduled,
-                trigger="cron",
-                kwargs={"day_of_week": day, "hour": h, "minute": m},
-            ),
-            ScheduledJob(
-                job_id="famcom_daily_summary",
-                func=self._daily_summary_scheduled,
+                job_id="heartsync_daily_reports",
+                func=self._daily_reports_scheduled,
                 trigger="cron",
                 kwargs={"hour": dh, "minute": dm},
             ),
         ]
+
+
+def _is_windows() -> bool:
+    import sys
+    return sys.platform == "win32"

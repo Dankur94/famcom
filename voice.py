@@ -5,8 +5,8 @@ import base64
 from openai import OpenAI
 
 _PROMPT_HEADER = """\
-You extract FamCom bot commands from voice transcripts.
-FamCom tracks family expenses (HKD), time investments, and thanks/kudos.
+You extract HeartSync bot commands from voice transcripts.
+HeartSync tracks feelings — hurt moments and smiles/joy between partners.
 Return ONLY the command, nothing else. If the transcript is not a bot command, return "NONE"."""
 
 _PROMPT_FOOTER = """
