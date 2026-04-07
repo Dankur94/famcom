@@ -34,8 +34,11 @@ class ReportsModule(BaseModule):
         return t in ("report", "today", "status")
 
     def handle(self, message: Message) -> Response | None:
-        report = self._build_personal_report(message.sender)
-        return Response(report)
+        parts = []
+        for person in self._members:
+            parts.append(self._build_personal_report(person))
+        divider = chr(10)*2 + chr(9473)*15 + chr(10)*2
+        return Response(divider.join(parts))
 
     def _build_personal_report(self, person: str) -> str:
         today = date.today()
